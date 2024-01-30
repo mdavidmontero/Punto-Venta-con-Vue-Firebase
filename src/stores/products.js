@@ -31,9 +31,9 @@ export const useProductsStore = defineStore("products", () => {
   const productsCollection = useCollection(q);
 
   const filterProducts = computed(() => {
-    return productsCollection.value.filter(
-      (product) => product.category === selectedCategory.value
-    );
+    return productsCollection.value
+      .filter((product) => product.category === selectedCategory.value)
+      .filter((product) => product.availability > 0);
   });
 
   async function createProduct(product) {

@@ -19,5 +19,4 @@ app.use(VueFire, {
 });
 app.use(router);
 app.use(plugin, defaultConfig(config));
-
 app.mount("#app");
