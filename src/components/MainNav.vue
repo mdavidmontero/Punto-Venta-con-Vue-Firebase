@@ -6,7 +6,7 @@ const products = useProductsStore()
 </script>
 <template>
     <header
-        class="px-10 py-5 bg-gray-700 flex flex-col lg:flex-row gap-5 lg:items-center justify-between absolute top-0 w-full z-10">
+        class="absolute top-0 z-10 flex flex-col justify-between w-full gap-5 px-10 py-5 bg-gray-700 lg:flex-row lg:items-center">
         <div>
             <Logo />
             <div class="flex gap-5 text-white">
@@ -14,7 +14,7 @@ const products = useProductsStore()
                 <div class="flex items-center gap-2" v-for="category in products.categories" :key="category.id">
 
                     <input type="radio" name="category" :value="category.id"
-                        class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-600"
                         :checked="products.selectedCategory === category.id"
                         @change="products.selectedCategory = +$event.target.value">
                     <label class="text-gray-100">{{ category.name }}</label>
