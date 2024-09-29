@@ -1,5 +1,4 @@
 import "./assets/main.css";
-
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { plugin, defaultConfig } from "@formkit/vue";
@@ -19,4 +18,5 @@ app.use(VueFire, {
 });
 app.use(router);
 app.use(plugin, defaultConfig(config));
+
 app.mount("#app");
