@@ -11,9 +11,9 @@ const formData = reactive( {
   password: '',
 } );
 
-const login = () => {
+const login = async () => {
   try {
-    const data = auth.loginUser( formData.email, formData.password );
+    const data = await auth.loginUser( formData.email, formData.password );
     console.log( data );
   } catch ( error ) {
     console.log( error );

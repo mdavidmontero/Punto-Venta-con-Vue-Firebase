@@ -1,7 +1,13 @@
-import { ref, computed, watchEffect } from "vue";
+import { ref, computed, watchEffect, onMounted } from "vue";
 import { defineStore } from "pinia";
 import { useCouponStore } from "./coupons";
-import { collection, addDoc, runTransaction, doc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  runTransaction,
+  doc,
+  getDocs,
+} from "firebase/firestore";
 import { useFirestore } from "vuefire";
 import { getCurrentDate } from "../helpers";
 
@@ -10,31 +16,38 @@ export const useCartStore = defineStore("cart", () => {
   const db = useFirestore();
   const items = ref([]);
   const subtotal = ref(0);
-  const taxes = ref(0);
+  // const taxes = ref(0);
   const total = ref(0);
   const MAX_PRODUCTS = 5;
-  const TAX_RATE = 0.1;
+  // const TAX_RATE = 0.0;
+  const whatsappNumber = ref("");
+  onMounted(async () => {
+    const querySnapshot = await getDocs(collection(db, "phoneNumbers"));
+    if (!querySnapshot.empty) {
+      const firstDoc = querySnapshot.docs[0];
+      whatsappNumber.value = firstDoc.data().phone;
+    } else {
+      console.log("No se encontró ningún documento en phoneNumbers");
+    }
+  });
 
   watchEffect(() => {
     subtotal.value = items.value.reduce(
       (total, item) => total + item.quantity * item.price,
       0
     );
-    taxes.value = subtotal.value * TAX_RATE;
-    total.value = Number((subtotal.value + taxes.value).toFixed(2));
-    total.value = Number(
-      (subtotal.value + taxes.value - coupon.discount).toFixed(2)
-    );
+    // taxes.value = subtotal.value * TAX_RATE;
+    total.value = Number(subtotal.value.toFixed(2));
+    total.value = Number((subtotal.value - coupon.discount).toFixed(2));
   });
 
   function addItem(item) {
     const index = isItemInCart(item.id);
     if (index >= 0) {
       if (isProductAvailable(item, index)) {
-        alert("Has alcando el limite");
+        alert("Has alcanzado el límite");
         return;
       }
-      // Actualizar la cantidad
       items.value[index].quantity++;
     } else {
       items.value.push({ ...item, quantity: 1, id: item.id });
@@ -51,21 +64,26 @@ export const useCartStore = defineStore("cart", () => {
     items.value = items.value.filter((item) => item.id !== id);
   }
 
-  async function checkout() {
+  async function checkout(userData) {
+    const user = JSON.parse(localStorage.getItem("user"));
     try {
+      if (!user) {
+        alert("Debes iniciar sesión");
+        return;
+      }
       await addDoc(collection(db, "sales"), {
         items: items.value.map((item) => {
           const { availability, category, ...data } = item;
           return data;
         }),
         subtotal: subtotal.value,
-        taxes: taxes.value,
+        // taxes: taxes.value,
         discount: coupon.discount,
         total: total.value,
         date: getCurrentDate(),
+        user: userData,
       });
 
-      // Sustraer la cantidad de lo disponible
       items.value.forEach(async (item) => {
         const productRef = doc(db, "products", item.id);
         await runTransaction(db, async (transaction) => {
@@ -75,7 +93,9 @@ export const useCartStore = defineStore("cart", () => {
           transaction.update(productRef, { availability: availability });
         });
       });
-      // Reiniciar el state
+
+      sendToWhatsApp(userData);
+
       $reset();
       coupon.$reset();
     } catch (error) {
@@ -83,10 +103,25 @@ export const useCartStore = defineStore("cart", () => {
     }
   }
 
+  function sendToWhatsApp(userData) {
+    const message = `Nuevo pedido de ${userData.name} (${userData.email}, ${
+      userData.phone
+    }, ${userData.address}):\n\n${items.value
+      .map(
+        (item) => `${item.name} (x${item.quantity}) - Precio: $${item.price}`
+      )
+      .join("\n")}\n\nSubtotal: $${subtotal.value}\nTotal: $${total.value}`;
+
+    const url = `https://wa.me/57${
+      whatsappNumber.value
+    }?text=${encodeURIComponent(message)}`;
+
+    window.open(url, "_blank");
+  }
   function $reset() {
     items.value = [];
     subtotal.value = 0;
-    taxes.value = 0;
+    // taxes.value = 0;
     total.value = 0;
   }
 
@@ -112,7 +147,7 @@ export const useCartStore = defineStore("cart", () => {
     addItem,
     removeItem,
     checkout,
-    taxes,
+    // taxes,
     isEmpty,
     checkProductAvailability,
     updateQuantity,

@@ -72,6 +72,26 @@ const router = createRouter({
           name: "seed-products",
           component: () => import("../views/admin/SeederView.vue"),
         },
+        {
+          path: "categorias",
+          name: "categories",
+          component: () => import("../views/admin/CategoriesView.vue"),
+        },
+        {
+          path: "categorias/nuevo",
+          name: "new-categories",
+          component: () => import("../views/admin/NewCategories.vue"),
+        },
+        {
+          path: "categorias/editar/:id",
+          name: "edit-category",
+          component: () => import("../views/admin/EditCategoriesView.vue"),
+        },
+        {
+          path: "configurar-whatsapp",
+          name: "configure-whatsapp",
+          component: () => import("../views/admin/WatsappView.vue"),
+        },
       ],
     },
   ],

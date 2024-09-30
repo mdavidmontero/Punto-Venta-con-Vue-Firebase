@@ -1,17 +1,15 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useCollection, useFirestore, useFirebaseStorage } from "vuefire";
 import {
   collection,
   addDoc,
-  where,
-  query,
-  limit,
   orderBy,
   updateDoc,
   doc,
   getDoc,
   deleteDoc,
+  query,
 } from "firebase/firestore";
 import { ref as storageRef, deleteObject } from "firebase/storage";
 
@@ -19,20 +17,35 @@ export const useProductsStore = defineStore("products", () => {
   const db = useFirestore();
   const storage = useFirebaseStorage();
 
-  const selectedCategory = ref(1);
+  const categoriesQuery = query(
+    collection(db, "categories"),
+    orderBy("name", "asc")
+  );
+  const categoriesCollection = useCollection(categoriesQuery);
 
-  const categories = [
-    { id: 1, name: "Sudaderas" },
-    { id: 2, name: "Tenis" },
-    { id: 3, name: "Lentes" },
-  ];
+  const selectedCategory = ref("");
 
-  const q = query(collection(db, "products"), orderBy("availability", "asc"));
-  const productsCollection = useCollection(q);
+  const productsQuery = query(
+    collection(db, "products"),
+    orderBy("availability", "asc")
+  );
+  const productsCollection = useCollection(productsQuery);
+
+  watch(categoriesCollection, (newCategories) => {
+    if (newCategories?.length && !selectedCategory.value) {
+      selectedCategory.value = newCategories[0].id;
+    }
+  });
 
   const filterProducts = computed(() => {
+    if (selectedCategory.value === "") {
+      return productsCollection.value?.filter(
+        (product) => product.availability > 0
+      );
+    }
+
     return productsCollection.value
-      .filter((product) => product.category === selectedCategory.value)
+      ?.filter((product) => product.category === selectedCategory.value)
       .filter((product) => product.availability > 0);
   });
 
@@ -55,10 +68,10 @@ export const useProductsStore = defineStore("products", () => {
   const categoryOptions = computed(() => {
     const options = [
       { label: "Seleccione", value: "", attrs: { disabled: true } },
-      ...categories.map((category) => ({
+      ...(categoriesCollection.value?.map((category) => ({
         label: category.name,
         value: category.id,
-      })),
+      })) || []),
     ];
     return options;
   });
@@ -73,14 +86,14 @@ export const useProductsStore = defineStore("products", () => {
     }
   }
 
-  const noResults = computed(() => productsCollection.value.length === 0);
+  const noResults = computed(() => productsCollection.value?.length === 0);
 
   return {
     createProduct,
     updateProduct,
     deleteProduct,
     productsCollection,
-    categories,
+    categories: categoriesCollection,
     selectedCategory,
     categoryOptions,
     noResults,
